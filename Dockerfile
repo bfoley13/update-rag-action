@@ -1,14 +1,14 @@
 FROM golang:1.23 AS builder
 
-WORKDIR /src
+WORKDIR /src/app
 COPY . .
 
 ENV GO111MODULE=on
 
-RUN go build -o rag-updater
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /tmp/rag-updater
 
-FROM scratch
+FROM alpine:3.21 AS run-env
 
-COPY --from=builder /src/rag-updater rag-updater
+COPY --from=builder /tmp/rag-updater /rag-updater
 
-ENTRYPOINT ["rag-updater"]
+CMD [ "/rag-updater" ]
