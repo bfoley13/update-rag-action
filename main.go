@@ -30,7 +30,7 @@ func main() {
 	// 	githubactions.Fatalf("failed to check if index exists: %v", err)
 	// }
 
-	createIndex(ragClient)
+	createIndex(nil)
 }
 
 func createIndex(ragClient *RagClient) {
