@@ -1,0 +1,133 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+)
+
+type RagClient struct {
+	Host   string
+	Port   string
+	Branch string
+}
+
+func NewRagClient(host string, port string, branch string) *RagClient {
+	return &RagClient{
+		Host:   host,
+		Port:   port,
+		Branch: branch,
+	}
+}
+
+// GetHost returns the host of the RAG client.
+func (c *RagClient) GetIndexDocuments() ([]*RagDocument, error) {
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/indexes/%s/documents", c.Host, c.Port, c.Branch))
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get index documents: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+
+	var listDocResponse ListRagDocumentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&listDocResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return listDocResponse.Documents, nil
+}
+
+func (c *RagClient) UpdateDocuments(documents []*RagDocument) (*UpdateDocumentResponse, error) {
+	updateRequest := UpdateDocumentRequest{
+		Documents: documents,
+	}
+
+	updateBytes, err := json.Marshal(updateRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal update request: %w", err)
+	}
+
+	resp, err := http.Post(fmt.Sprintf("http://%s:%s/indexes/%s/documents", c.Host, c.Port, c.Branch), "application/json", bytes.NewBuffer(updateBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to update documents: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+
+	var updateResponse UpdateDocumentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&updateResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &updateResponse, nil
+}
+
+func (c *RagClient) CreateIndex(documents []*RagDocument) ([]*RagDocument, error) {
+
+	createRequest := CreateIndexRequest{
+		IndexName: c.Branch,
+		Documents: documents,
+	}
+
+	createBytes, err := json.Marshal(createRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal create index request: %w", err)
+	}
+
+	resp, err := http.Post(fmt.Sprintf("http://%s:%s/index", c.Host), "application/json", bytes.NewBuffer(createBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("failed to create index: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+
+	var response []*RagDocument
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return response, nil
+}
+
+func (c *RagClient) CheckIfIndexExists() (bool, error) {
+	indexes, err := c.ListIndexs()
+	if err != nil {
+		return false, err
+	}
+	for _, index := range indexes {
+		if strings.EqualFold(index, c.Branch) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (c *RagClient) ListIndexs() ([]string, error) {
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/indexes", c.Host, c.Port))
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get index documents: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+
+	var indexes []string
+	if err := json.NewDecoder(resp.Body).Decode(&indexes); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return indexes, nil
+}

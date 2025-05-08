@@ -1,0 +1,22 @@
+name: 'RAGEngine Updater'
+author: 'Brandon'
+description: 'Updates the RAGEngine with the latest changes from a branch.'
+inputs:
+  token:
+    description: 'Your GITHUB_TOKEN'
+    default: ${{ github.token }}
+    required: false
+  branch:
+    description: 'The branch to update from'
+    default: ${{ github.ref_name }} 
+    required: false
+  ragHost:
+    description: 'The host of the RAGEngine (e.g., my-ragengine.com)'
+    required: true
+  ragPort:
+    description: 'The port of the RAGEngine (e.g., 443)'
+    required: true
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
