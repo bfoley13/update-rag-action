@@ -9,6 +9,6 @@ RUN go build -o rag-updater
 
 FROM scratch
 
-COPY --from=builder /src/rag-updater /bin/rag-updater
+COPY --from=builder /src/rag-updater rag-updater
 
-ENTRYPOINT ["/bin/rag-updater"]
+ENTRYPOINT ["rag-updater"]
