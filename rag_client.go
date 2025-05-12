@@ -92,7 +92,7 @@ func (c *RagClient) CreateIndex(documents []*RagDocument) ([]*RagDocument, error
 		return nil, fmt.Errorf("failed to marshal create index request: %w", err)
 	}
 
-	resp, err := http.Post(fmt.Sprintf("http://%s:%s/index", c.Host), "application/json", bytes.NewBuffer(createBytes))
+	resp, err := http.Post(fmt.Sprintf("http://%s:%s/index", c.Host, c.Port), "application/json", bytes.NewBuffer(createBytes))
 	if err != nil {
 		return nil, err
 	}
