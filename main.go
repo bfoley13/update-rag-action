@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -34,6 +32,21 @@ func main() {
 
 	githubRepo := os.Getenv("GITHUB_REPOSITORY")
 	githubRepoOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
+	gitHubHeadRef := os.Getenv("GITHUB_HEAD_REF")
+	gitHubBaseRef := os.Getenv("GITHUB_BASE_REF")
+	gitHubRef := os.Getenv("GITHUB_REF")
+	gitHubRefName := os.Getenv("GITHUB_REF_NAME")
+	gitHubEnv := os.Getenv("GITHUB_ENV")
+	gitHubSetupSummary := os.Getenv("GITHUB_SETUP_SUMMARY")
+
+	githubactions.Infof("GITHUB_REPOSITORY: %s", githubRepo)
+	githubactions.Infof("GITHUB_REPOSITORY_OWNER: %s", githubRepoOwner)
+	githubactions.Infof("GITHUB_HEAD_REF: %s", gitHubHeadRef)
+	githubactions.Infof("GITHUB_BASE_REF: %s", gitHubBaseRef)
+	githubactions.Infof("GITHUB_REF: %s", gitHubRef)
+	githubactions.Infof("GITHUB_REF_NAME: %s", gitHubRefName)
+	githubactions.Infof("GITHUB_ENV: %s", gitHubEnv)
+	githubactions.Infof("GITHUB_SETUP_SUMMARY: %s", gitHubSetupSummary)
 
 	if githubRepo == "" {
 		githubactions.Fatalf("GITHUB_REPOSITORY is required")
@@ -41,6 +54,8 @@ func main() {
 	if githubRepoOwner == "" {
 		githubactions.Fatalf("GITHUB_REPOSITORY_OWNER is required")
 	}
+
+	ghClient := NewGitHubClient(githubRepoOwner, githubRepo, branch, token)
 
 	githubactions.Infof("ragHost: %s | ragPort: %s | branch: %s", ragHost, ragPort, branch)
 	ragClient := NewRagClient(ragHost, ragPort, branch)
@@ -53,12 +68,8 @@ func main() {
 		githubactions.Infof("Index does not exist, creating index")
 		createIndex(ragClient)
 	} else {
-		err := setupGit(token)
-		if err != nil {
-			githubactions.Fatalf("failed to setup git: %v", err)
-		}
 		githubactions.Infof("Index already exists, updating index")
-		updatedFiles, err := getUpdatedFiles()
+		updatedFiles, err := getUpdatedFiles(ghClient)
 		if err != nil {
 			githubactions.Fatalf("failed to get updated files: %v", err)
 		}
@@ -123,59 +134,14 @@ func createIndex(ragClient *RagClient) {
 	githubactions.Infof("Index created successfully")
 }
 
-func setupGit(token string) error {
-	cmd := exec.Command("git", "config", "--local", "--name-only", "--get-regexp core\\.sshCommand")
-	output, err := cmd.Output()
-	githubactions.Infof("output bytes: %s", string(output))
-	if err != nil {
-		return err
-	}
+func getUpdatedFiles(ghClient *GitHubClient) ([]string, error) {
+	files := []string{}
+	// return ghClient.GetFilesInPR()
 
-	cmd = exec.Command("git", "submodule", "foreach", "--recursive", "sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"")
-	output, err = cmd.Output()
-	githubactions.Infof("output bytes: %s", string(output))
-	if err != nil {
-		return err
-	}
-
-	cmd = exec.Command("git", "config", "--local", "--name-only", "--get-regexp", "http\\.https\\:\\/\\/github\\.com\\/\\.extraheader")
-	output, err = cmd.Output()
-	githubactions.Infof("output bytes: %s", string(output))
-	if err != nil {
-		return err
-	}
-
-	cmd = exec.Command("git", "submodule", "foreach", "--recursive", "sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"")
-	output, err = cmd.Output()
-	githubactions.Infof("output bytes: %s", string(output))
-	if err != nil {
-		return err
-	}
-
-	cmd = exec.Command("git", "config", "--local", fmt.Sprintf("http.https://github.com/.extraheader AUTHORIZATION: basic %s", token))
-	output, err = cmd.Output()
-	githubactions.Infof("output bytes: %s", string(output))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func getUpdatedFiles() ([]string, error) {
-	cmd := exec.Command("git", "diff", "--name-only", "HEAD", "HEAD~1")
-	output, err := cmd.Output()
-	githubactions.Infof("output bytes: %s", string(output))
-	if err != nil {
-		return nil, err
-	}
-
-	githubactions.Infof("Updated files: %s", string(output))
-
-	files := strings.Split(string(output), "\n")
-	for i := range files {
-		files[i] = strings.TrimSpace(files[i])
-	}
+	// files := strings.Split(string(output), "\n")
+	// for i := range files {
+	// 	files[i] = strings.TrimSpace(files[i])
+	// }
 	return files, nil
 }
 
