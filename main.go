@@ -8,27 +8,27 @@ import (
 )
 
 func main() {
-	// ragHost := githubactions.GetInput("ragHost")
-	// if ragHost == "" {
-	// 	githubactions.Fatalf("ragHost is required")
-	// }
+	ragHost := githubactions.GetInput("ragHost")
+	if ragHost == "" {
+		githubactions.Fatalf("ragHost is required")
+	}
 
-	// ragPort := githubactions.GetInput("ragPort")
-	// if ragPort == "" {
-	// 	githubactions.Fatalf("ragPort is required")
-	// }
+	ragPort := githubactions.GetInput("ragPort")
+	if ragPort == "" {
+		githubactions.Fatalf("ragPort is required")
+	}
 
-	// branch := githubactions.GetInput("branch")
-	// if branch == "" {
-	// 	githubactions.Fatalf("branch is required")
-	// }
+	branch := githubactions.GetInput("branch")
+	if branch == "" {
+		githubactions.Fatalf("branch is required")
+	}
 
-	// githubactions.Infof("ragHost: %s | ragPort: %s | branch: %s", ragHost, ragPort, branch)
-	// ragClient := NewRagClient(ragHost, ragPort, branch)
-	// _, err := ragClient.CheckIfIndexExists()
-	// if err != nil {
-	// 	githubactions.Fatalf("failed to check if index exists: %v", err)
-	// }
+	githubactions.Infof("ragHost: %s | ragPort: %s | branch: %s", ragHost, ragPort, branch)
+	ragClient := NewRagClient(ragHost, ragPort, branch)
+	_, err := ragClient.CheckIfIndexExists()
+	if err != nil {
+		githubactions.Fatalf("failed to check if index exists: %v", err)
+	}
 
 	createIndex(nil)
 }
