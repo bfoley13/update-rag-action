@@ -97,7 +97,7 @@ func (c *RagClient) CreateIndex(documents []*RagDocument) ([]*RagDocument, error
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to create index: %s", resp.Status)
 	}
 	defer resp.Body.Close()
