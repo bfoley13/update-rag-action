@@ -43,3 +43,19 @@ func (c *GitHubClient) GetFilesInPR(ctx context.Context, prNum int) ([]string, e
 
 	return files, nil
 }
+
+func (c *GitHubClient) GetCommitFiles(ctx context.Context, commitSHA string) ([]string, error) {
+	files := []string{}
+	commit, _, err := c.client.Repositories.GetCommit(ctx, c.RepoOwner, c.RepoName, commitSHA, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range commit.Files {
+		if file.Filename != nil && *file.Filename != "" {
+			files = append(files, *file.Filename)
+		}
+	}
+
+	return files, nil
+}

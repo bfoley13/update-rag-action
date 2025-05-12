@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -30,6 +31,7 @@ func main() {
 		githubactions.Fatalf("token is required")
 	}
 
+	gitHubSha := os.Getenv("GITHUB_SHA")
 	githubRepo := os.Getenv("GITHUB_REPOSITORY")
 	githubRepoOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
 	gitHubHeadRef := os.Getenv("GITHUB_HEAD_REF")
@@ -136,12 +138,12 @@ func createIndex(ragClient *RagClient) {
 
 func getUpdatedFiles(ghClient *GitHubClient) ([]string, error) {
 	files := []string{}
-	// return ghClient.GetFilesInPR()
-
-	// files := strings.Split(string(output), "\n")
-	// for i := range files {
-	// 	files[i] = strings.TrimSpace(files[i])
-	// }
+	files, err := ghClient.GetCommitFiles(context.Background(), os.Getenv("GITHUB_SHA"))
+	if err != nil {
+		githubactions.Fatalf("failed to get commit files: %v", err)
+		return nil, err
+	}
+	githubactions.Infof("Updated files: %v", files)
 	return files, nil
 }
 
@@ -149,6 +151,10 @@ func updateIndex(ragClient *RagClient, updatedFiles []string) {
 	documents := []*RagDocument{}
 	for _, file := range updatedFiles {
 		githubactions.Infof("Processing file: %s", file)
+		if !strings.HasSuffix(file, ".go") {
+			githubactions.Infof("Skipping file: %s", file)
+			continue
+		}
 
 		fileBytes, err := os.ReadFile(file)
 		if err != nil {
