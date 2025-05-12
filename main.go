@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -58,7 +59,7 @@ func main() {
 		githubactions.Fatalf("GITHUB_REPOSITORY_OWNER is required")
 	}
 
-	ghClient := NewGitHubClient(githubRepoOwner, githubRepo, branch, token)
+	ghClient := NewGitHubClient(githubRepoOwner, strings.ReplaceAll(githubRepo, fmt.Sprintf("%s/", githubRepoOwner), ""), branch, token)
 
 	githubactions.Infof("ragHost: %s | ragPort: %s | branch: %s", ragHost, ragPort, branch)
 	ragClient := NewRagClient(ragHost, ragPort, branch)
