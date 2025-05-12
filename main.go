@@ -41,6 +41,7 @@ func main() {
 	gitHubEnv := os.Getenv("GITHUB_ENV")
 	gitHubSetupSummary := os.Getenv("GITHUB_SETUP_SUMMARY")
 
+	githubactions.Infof("GITHUB_SHA: %s", gitHubSha)
 	githubactions.Infof("GITHUB_REPOSITORY: %s", githubRepo)
 	githubactions.Infof("GITHUB_REPOSITORY_OWNER: %s", githubRepoOwner)
 	githubactions.Infof("GITHUB_HEAD_REF: %s", gitHubHeadRef)
@@ -71,7 +72,7 @@ func main() {
 		createIndex(ragClient)
 	} else {
 		githubactions.Infof("Index already exists, updating index")
-		updatedFiles, err := getUpdatedFiles(ghClient)
+		updatedFiles, err := getUpdatedFiles(ghClient, gitHubSha)
 		if err != nil {
 			githubactions.Fatalf("failed to get updated files: %v", err)
 		}
@@ -136,9 +137,8 @@ func createIndex(ragClient *RagClient) {
 	githubactions.Infof("Index created successfully")
 }
 
-func getUpdatedFiles(ghClient *GitHubClient) ([]string, error) {
-	files := []string{}
-	files, err := ghClient.GetCommitFiles(context.Background(), os.Getenv("GITHUB_SHA"))
+func getUpdatedFiles(ghClient *GitHubClient, sha string) ([]string, error) {
+	files, err := ghClient.GetCommitFiles(context.Background(), sha)
 	if err != nil {
 		githubactions.Fatalf("failed to get commit files: %v", err)
 		return nil, err

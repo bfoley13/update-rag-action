@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/go-github/v72/github"
+	"github.com/sethvargo/go-githubactions"
 	"golang.org/x/oauth2"
 )
 
@@ -50,6 +51,8 @@ func (c *GitHubClient) GetCommitFiles(ctx context.Context, commitSHA string) ([]
 	if err != nil {
 		return nil, err
 	}
+
+	githubactions.Infof("Commit: %+v", *commit)
 
 	for _, file := range commit.Files {
 		if file.Filename != nil && *file.Filename != "" {
