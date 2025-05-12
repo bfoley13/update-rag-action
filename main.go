@@ -104,8 +104,15 @@ func createIndex(ragClient *RagClient) {
 }
 
 func getUpdatedFiles() ([]string, error) {
-	cmd := exec.Command("git", "--version", "origin")
+	cmd := exec.Command("ls", "-la")
 	output, err := cmd.Output()
+	githubactions.Infof("output bytes: %s", string(output))
+	if err != nil {
+		return nil, err
+	}
+
+	cmd = exec.Command("git", "--version", "origin")
+	output, err = cmd.Output()
 	githubactions.Infof("output bytes: %s", string(output))
 	if err != nil {
 		return nil, err
