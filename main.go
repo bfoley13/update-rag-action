@@ -107,6 +107,7 @@ func getUpdatedFiles() ([]string, error) {
 	cmd := exec.Command("git", "diff", "--name-only", "HEAD", "HEAD~1")
 	output, err := cmd.Output()
 	if err != nil {
+		githubactions.Infof("output bytes: %s", string(output))
 		return nil, err
 	}
 
