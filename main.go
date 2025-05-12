@@ -53,8 +53,12 @@ func main() {
 		githubactions.Infof("Index does not exist, creating index")
 		createIndex(ragClient)
 	} else {
+		err := setupGit(token)
+		if err != nil {
+			githubactions.Fatalf("failed to setup git: %v", err)
+		}
 		githubactions.Infof("Index already exists, updating index")
-		updatedFiles, err := getUpdatedFiles(githubRepo, githubRepoOwner, token)
+		updatedFiles, err := getUpdatedFiles()
 		if err != nil {
 			githubactions.Fatalf("failed to get updated files: %v", err)
 		}
@@ -119,23 +123,48 @@ func createIndex(ragClient *RagClient) {
 	githubactions.Infof("Index created successfully")
 }
 
-func getUpdatedFiles(repo, owner, token string) ([]string, error) {
-	cmd := exec.Command("git", "remote", "set-url", "origin", fmt.Sprintf("https://rag-update-action:%s@github.com/%s/%s.git", token, owner, repo))
+func setupGit(token string) error {
+	cmd := exec.Command("git", "config", "--local", "--name-only", "--get-regexp core\\.sshCommand")
 	output, err := cmd.Output()
 	githubactions.Infof("output bytes: %s", string(output))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	cmd = exec.Command("git", "status")
+	cmd = exec.Command("git", "submodule", "foreach", "--recursive", "sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"")
 	output, err = cmd.Output()
 	githubactions.Infof("output bytes: %s", string(output))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	cmd = exec.Command("git", "diff", "--name-only", "HEAD", "HEAD~1")
+	cmd = exec.Command("git", "config", "--local", "--name-only", "--get-regexp", "http\\.https\\:\\/\\/github\\.com\\/\\.extraheader")
 	output, err = cmd.Output()
+	githubactions.Infof("output bytes: %s", string(output))
+	if err != nil {
+		return err
+	}
+
+	cmd = exec.Command("git", "submodule", "foreach", "--recursive", "sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"")
+	output, err = cmd.Output()
+	githubactions.Infof("output bytes: %s", string(output))
+	if err != nil {
+		return err
+	}
+
+	cmd = exec.Command("git", "config", "--local", fmt.Sprintf("http.https://github.com/.extraheader AUTHORIZATION: basic %s", token))
+	output, err = cmd.Output()
+	githubactions.Infof("output bytes: %s", string(output))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getUpdatedFiles() ([]string, error) {
+	cmd := exec.Command("git", "diff", "--name-only", "HEAD", "HEAD~1")
+	output, err := cmd.Output()
 	githubactions.Infof("output bytes: %s", string(output))
 	if err != nil {
 		return nil, err
