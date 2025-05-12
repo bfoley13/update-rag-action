@@ -51,6 +51,15 @@ func main() {
 		updateIndex(ragClient, updatedFiles)
 		githubactions.Infof("Index updated successfully")
 	}
+
+	docs, err := ragClient.GetIndexDocuments()
+	if err != nil {
+		githubactions.Fatalf("failed to get index documents: %v", err)
+	}
+
+	githubactions.Infof("Index documents retrieved successfully")
+	githubactions.Infof("Documents: %v", docs)
+	githubactions.Infof("Document count: %d", len(docs))
 }
 
 func createIndex(ragClient *RagClient) {

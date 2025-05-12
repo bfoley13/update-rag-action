@@ -24,7 +24,9 @@ func NewRagClient(host string, port string, branch string) *RagClient {
 
 // GetHost returns the host of the RAG client.
 func (c *RagClient) GetIndexDocuments() ([]*RagDocument, error) {
-	resp, err := http.Get(fmt.Sprintf("http://%s:%s/indexes/%s/documents", c.Host, c.Port, c.Branch))
+	metadataFilter := fmt.Sprintf(`{"branch": "%s"}`, c.Branch)
+
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/indexes/%s/documents?metadata_fileter=%s", c.Host, c.Port, c.Branch, metadataFilter))
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +45,10 @@ func (c *RagClient) GetIndexDocuments() ([]*RagDocument, error) {
 }
 
 func (c *RagClient) UpdateDocuments(documents []*RagDocument) (*UpdateDocumentResponse, error) {
+	for _, doc := range documents {
+		doc.Metadata["branch"] = c.Branch
+	}
+
 	updateRequest := UpdateDocumentRequest{
 		Documents: documents,
 	}
@@ -71,6 +77,10 @@ func (c *RagClient) UpdateDocuments(documents []*RagDocument) (*UpdateDocumentRe
 }
 
 func (c *RagClient) CreateIndex(documents []*RagDocument) ([]*RagDocument, error) {
+
+	for _, doc := range documents {
+		doc.Metadata["branch"] = c.Branch
+	}
 
 	createRequest := CreateIndexRequest{
 		IndexName: c.Branch,
