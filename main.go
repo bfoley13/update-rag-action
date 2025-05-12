@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -26,6 +27,21 @@ func main() {
 		githubactions.Fatalf("branch is required")
 	}
 
+	token := githubactions.GetInput("token")
+	if token == "" {
+		githubactions.Fatalf("token is required")
+	}
+
+	githubRepo := os.Getenv("GITHUB_REPOSITORY")
+	githubRepoOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
+
+	if githubRepo == "" {
+		githubactions.Fatalf("GITHUB_REPOSITORY is required")
+	}
+	if githubRepoOwner == "" {
+		githubactions.Fatalf("GITHUB_REPOSITORY_OWNER is required")
+	}
+
 	githubactions.Infof("ragHost: %s | ragPort: %s | branch: %s", ragHost, ragPort, branch)
 	ragClient := NewRagClient(ragHost, ragPort, branch)
 	indexExists, err := ragClient.CheckIfIndexExists()
@@ -38,7 +54,7 @@ func main() {
 		createIndex(ragClient)
 	} else {
 		githubactions.Infof("Index already exists, updating index")
-		updatedFiles, err := getUpdatedFiles()
+		updatedFiles, err := getUpdatedFiles(githubRepo, githubRepoOwner, token)
 		if err != nil {
 			githubactions.Fatalf("failed to get updated files: %v", err)
 		}
@@ -103,16 +119,9 @@ func createIndex(ragClient *RagClient) {
 	githubactions.Infof("Index created successfully")
 }
 
-func getUpdatedFiles() ([]string, error) {
-	cmd := exec.Command("ls", "-la")
+func getUpdatedFiles(repo, owner, token string) ([]string, error) {
+	cmd := exec.Command("git", "remote", "set-url", "origin", fmt.Sprintf("https://rag-update-action:%s@github.com/%s/%s.git", token, owner, repo))
 	output, err := cmd.Output()
-	githubactions.Infof("output bytes: %s", string(output))
-	if err != nil {
-		return nil, err
-	}
-
-	cmd = exec.Command("git", "--version", "origin")
-	output, err = cmd.Output()
 	githubactions.Infof("output bytes: %s", string(output))
 	if err != nil {
 		return nil, err
