@@ -9,6 +9,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /tmp
 
 FROM alpine:3.21 AS run-env
 
+RUN apk update && \
+    apk add git
+
 COPY --from=builder /tmp/rag-updater /rag-updater
 
 CMD [ "/rag-updater" ]
