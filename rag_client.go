@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	githubactions "github.com/sethvargo/go-githubactions"
 )
 
 type RagClient struct {
@@ -49,6 +51,7 @@ func (c *RagClient) GetIndexedDocuments(fileNames []string) ([]*RagDocument, err
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
 		resp.Body.Close()
+		githubactions.Infof("Documents found for file %s: %+v", fileName, listDocResponse.Documents)
 
 		respDocs = append(respDocs, listDocResponse.Documents...)
 	}
