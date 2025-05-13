@@ -51,9 +51,11 @@ func (c *RagClient) GetIndexedDocuments(fileNames []string) ([]*RagDocument, err
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
 		resp.Body.Close()
-		respJson, _ := json.Marshal(listDocResponse)
-		githubactions.Infof("Response JSON: %s", string(respJson))
-		githubactions.Infof("Documents found for file %s: %+v", fileName, listDocResponse.Documents)
+
+		for _, doc := range listDocResponse.Documents {
+			respJson, _ := json.Marshal(doc)
+			githubactions.Infof("Response JSON: %s", string(respJson))
+		}
 
 		respDocs = append(respDocs, listDocResponse.Documents...)
 	}
