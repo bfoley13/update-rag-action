@@ -41,7 +41,7 @@ func (c *RagClient) GetIndexedDocuments(fileNames []string) ([]*RagDocument, err
 			return nil, fmt.Errorf("failed to marshal metadata filter: %w", err)
 		}
 
-		resp, err := http.Get(fmt.Sprintf("http://%s:%s/indexes/%s/documents?metadata_fileter=%s", c.Host, c.Port, c.Branch, string(filterBytes)))
+		resp, err := http.Get(fmt.Sprintf("http://%s:%s/indexes/%s/documents?metadata_filter=%s", c.Host, c.Port, c.Branch, string(filterBytes)))
 		if err != nil {
 			return nil, err
 		}
