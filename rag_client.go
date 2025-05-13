@@ -23,25 +23,37 @@ func NewRagClient(host string, port string, branch string) *RagClient {
 }
 
 // GetHost returns the host of the RAG client.
-func (c *RagClient) GetIndexDocuments() ([]*RagDocument, error) {
-	metadataFilter := fmt.Sprintf(`{"branch": "%s"}`, c.Branch)
-
-	resp, err := http.Get(fmt.Sprintf("http://%s:%s/indexes/%s/documents?metadata_fileter=%s", c.Host, c.Port, c.Branch, metadataFilter))
-	if err != nil {
-		return nil, err
+func (c *RagClient) GetIndexedDocuments(fileNames []string) ([]*RagDocument, error) {
+	metadataFilter := map[string]string{
+		"branch": c.Branch,
+	}
+	if len(fileNames) == 0 {
+		return nil, nil
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get index documents: %s", resp.Status)
-	}
-	defer resp.Body.Close()
+	respDocs := []*RagDocument{}
+	for _, fileName := range fileNames {
+		metadataFilter["file_name"] = fileName
+		filterBytes, err := json.Marshal(&metadataFilter)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal metadata filter: %w", err)
+		}
 
-	var listDocResponse ListRagDocumentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&listDocResponse); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		resp, err := http.Get(fmt.Sprintf("http://%s:%s/indexes/%s/documents?metadata_fileter=%s", c.Host, c.Port, c.Branch, string(filterBytes)))
+		if err != nil {
+			return nil, err
+		}
+
+		var listDocResponse ListRagDocumentResponse
+		if err := json.NewDecoder(resp.Body).Decode(&listDocResponse); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		resp.Body.Close()
+
+		respDocs = append(respDocs, listDocResponse.Documents...)
 	}
 
-	return listDocResponse.Documents, nil
+	return respDocs, nil
 }
 
 func (c *RagClient) UpdateDocuments(documents []*RagDocument) (*UpdateDocumentResponse, error) {
@@ -53,7 +65,7 @@ func (c *RagClient) UpdateDocuments(documents []*RagDocument) (*UpdateDocumentRe
 		Documents: documents,
 	}
 
-	updateBytes, err := json.Marshal(updateRequest)
+	updateBytes, err := json.Marshal(&updateRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal update request: %w", err)
 	}

@@ -87,14 +87,7 @@ func main() {
 		githubactions.Infof("Index updated successfully")
 	}
 
-	docs, err := ragClient.GetIndexDocuments()
-	if err != nil {
-		githubactions.Fatalf("failed to get index documents: %v", err)
-	}
-
 	githubactions.Infof("Index documents retrieved successfully")
-	githubactions.Infof("Documents: %v", docs)
-	githubactions.Infof("Document count: %d", len(docs))
 }
 
 func createIndex(ragClient *RagClient) {
@@ -144,37 +137,74 @@ func getUpdatedFiles(ghClient *GitHubClient, sha string) ([]string, error) {
 		githubactions.Fatalf("failed to get commit files: %v", err)
 		return nil, err
 	}
+
+	filteredFiles := []string{}
+	for _, file := range files {
+		if strings.HasSuffix(file, ".go") {
+			filteredFiles = append(filteredFiles, file)
+		}
+	}
+
 	githubactions.Infof("Updated files: %v", files)
-	return files, nil
+	return filteredFiles, nil
 }
 
 func updateIndex(ragClient *RagClient, updatedFiles []string) {
-	documents := []*RagDocument{}
-	for _, file := range updatedFiles {
-		githubactions.Infof("Processing file: %s", file)
-		if !strings.HasSuffix(file, ".go") {
-			githubactions.Infof("Skipping file: %s", file)
-			continue
-		}
-
-		fileBytes, err := os.ReadFile(file)
-		if err != nil {
-			githubactions.Fatalf("failed to read file: %v", err)
-		}
-
-		fileContent := string(fileBytes)
-		documents = append(documents, &RagDocument{
-			Text:     fileContent,
-			Metadata: map[string]string{"file_path": file, "file_name": filepath.Base(file)},
-		})
+	currDocs, err := ragClient.GetIndexedDocuments(updatedFiles)
+	if err != nil {
+		githubactions.Fatalf("failed to get indexed documents: %v", err)
 	}
 
-	updateResponse, err := ragClient.UpdateDocuments(documents)
+	newDocs := []*RagDocument{}
+	updateDocs := []*RagDocument{}
+
+	for _, file := range updatedFiles {
+		githubactions.Infof("Processing file: %s", file)
+		var currDoc *RagDocument
+		for _, doc := range currDocs {
+			if doc.Metadata["file_path"] == file {
+				currDoc = doc
+				break
+			}
+		}
+		if currDoc == nil {
+			githubactions.Infof("Document not found in index, creating new document")
+
+			fileBytes, err := os.ReadFile(file)
+			if err != nil {
+				githubactions.Fatalf("failed to read file: %v", err)
+			}
+
+			fileContent := string(fileBytes)
+			newDocs = append(newDocs, &RagDocument{
+				Text:     fileContent,
+				Metadata: map[string]string{"file_path": file, "file_name": filepath.Base(file)},
+			})
+		} else {
+			githubactions.Infof("Document found in index, updating document")
+			fileBytes, err := os.ReadFile(file)
+			if err != nil {
+				githubactions.Fatalf("failed to read file: %v", err)
+			}
+
+			fileContent := string(fileBytes)
+			currDoc.Text = fileContent
+			updateDocs = append(updateDocs, currDoc)
+		}
+	}
+
+	updateResponse, err := ragClient.UpdateDocuments(updateDocs)
 	if err != nil {
 		githubactions.Fatalf("failed to update index: %v", err)
+	}
+
+	createResponse, err := ragClient.CreateIndex(newDocs)
+	if err != nil {
+		githubactions.Fatalf("failed to create new documents index: %v", err)
 	}
 	githubactions.Infof("Index updated successfully")
 	githubactions.Infof("Updated documents: %v", updateResponse.UpdatedDocuments)
 	githubactions.Infof("Unchanged documents: %v", updateResponse.UnchangedDocuments)
 	githubactions.Infof("Not found documents: %v", updateResponse.NotFoundDocuments)
+	githubactions.Infof("Created documents: %v", createResponse)
 }
