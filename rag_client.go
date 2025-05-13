@@ -96,6 +96,39 @@ func (c *RagClient) UpdateDocuments(documents []*RagDocument) (*UpdateDocumentRe
 	return &updateResponse, nil
 }
 
+func (c *RagClient) DeleteDocuments(documents []*RagDocument) (*DeleteDocumentResponse, error) {
+	docIds := make([]string, len(documents))
+	for i, doc := range documents {
+		docIds[i] = doc.DocumentId
+	}
+
+	deleteRequest := DeleteDocumentRequest{
+		DocumentIds: docIds,
+	}
+
+	deleteBytes, err := json.Marshal(&deleteRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal delete request: %w", err)
+	}
+
+	resp, err := http.Post(fmt.Sprintf("http://%s:%s/indexes/%s/documents/delete", c.Host, c.Port, c.Branch), "application/json", bytes.NewBuffer(deleteBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to delete documents: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+
+	var deleteResponse DeleteDocumentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&deleteResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &deleteResponse, nil
+}
+
 func (c *RagClient) CreateIndex(documents []*RagDocument) ([]*RagDocument, error) {
 
 	for _, doc := range documents {

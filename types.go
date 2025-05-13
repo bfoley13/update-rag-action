@@ -27,3 +27,12 @@ type UpdateDocumentResponse struct {
 	UnchangedDocuments []*RagDocument `json:"unchanged_documents"`
 	NotFoundDocuments  []*RagDocument `json:"not_found_documents"`
 }
+
+type DeleteDocumentRequest struct {
+	DocumentIds []string `json:"doc_ids"`
+}
+
+type DeleteDocumentResponse struct {
+	DeletedDocIds  []string `json:"deleted_doc_ids"`
+	NotFoundDocIds []string `json:"not_found_doc_ids"`
+}

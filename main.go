@@ -159,6 +159,7 @@ func updateIndex(ragClient *RagClient, updatedFiles []string) {
 
 	newDocs := []*RagDocument{}
 	updateDocs := []*RagDocument{}
+	deleteDocs := []*RagDocument{}
 
 	for _, file := range updatedFiles {
 		githubactions.Infof("Processing file: %s", file)
@@ -184,6 +185,13 @@ func updateIndex(ragClient *RagClient, updatedFiles []string) {
 			})
 		} else {
 			githubactions.Infof("Document found in index, updating document")
+			_, err := os.Stat(file)
+			if err != nil {
+				githubactions.Infof("File not found, deleting document from index")
+				deleteDocs = append(deleteDocs, currDoc)
+				continue
+			}
+
 			fileBytes, err := os.ReadFile(file)
 			if err != nil {
 				githubactions.Fatalf("failed to read file: %v", err)
@@ -204,9 +212,17 @@ func updateIndex(ragClient *RagClient, updatedFiles []string) {
 	if err != nil {
 		githubactions.Fatalf("failed to create new documents index: %v", err)
 	}
+
+	deleteResponmse, err := ragClient.DeleteDocuments(deleteDocs)
+	if err != nil {
+		githubactions.Fatalf("failed to delete documents from index: %v", err)
+	}
+
 	githubactions.Infof("Index updated successfully")
 	githubactions.Infof("Updated documents: %+v", updateResponse.UpdatedDocuments)
 	githubactions.Infof("Unchanged documents: %+v", updateResponse.UnchangedDocuments)
 	githubactions.Infof("Not found documents: %+v", updateResponse.NotFoundDocuments)
 	githubactions.Infof("Created documents: %+v", createResponse)
+	githubactions.Infof("Deleted documents: %+v", deleteResponmse.DeletedDocIds)
+	githubactions.Infof("Not found documents: %+v", deleteResponmse.NotFoundDocIds)
 }
