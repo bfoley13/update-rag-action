@@ -155,6 +155,8 @@ func updateIndex(ragClient *RagClient, updatedFiles []string) {
 		githubactions.Fatalf("failed to get indexed documents: %v", err)
 	}
 
+	githubactions.Infof("Current documents: %v", currDocs)
+
 	newDocs := []*RagDocument{}
 	updateDocs := []*RagDocument{}
 
