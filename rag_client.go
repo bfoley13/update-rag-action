@@ -54,6 +54,7 @@ func (c *RagClient) GetIndexedDocuments(fileNames []string) ([]*RagDocument, err
 
 		for _, doc := range listDocResponse.Documents {
 			respJson, _ := json.Marshal(doc)
+			githubactions.Infof("Document Metadata: %+v", doc.Metadata)
 			githubactions.Infof("Response JSON: %s", string(respJson))
 		}
 
