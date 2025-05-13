@@ -113,7 +113,7 @@ func createIndex(ragClient *RagClient) {
 		fileContent := string(fileBytes)
 		documents = append(documents, &RagDocument{
 			Text:     fileContent,
-			Metadata: map[string]string{"file_path": path, "file_name": d.Name()},
+			Metadata: map[string]string{"file_path": path, "file_name": d.Name(), "split_type": "code", "language": "go"},
 		})
 
 		return nil
